@@ -1,0 +1,48 @@
+name: Execute Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      to:
+        required: true
+        type: string
+      message:
+        required: true
+        type: string
+      alert_key:
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          path: project
+
+      - name: Checkout core
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/automation-core
+          path: core
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run project
+        env:
+          ALL_SECRETS: ${{ toJSON(secrets) }}
+          SMS_TO: ${{ github.event.inputs.to }}
+          SMS_MESSAGE: ${{ github.event.inputs.message }}
+          SMS_ALERT_KEY: ${{ github.event.inputs.alert_key }}
+        run: node core/runner.js
